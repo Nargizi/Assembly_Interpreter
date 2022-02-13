@@ -2,7 +2,7 @@ import re
 from typing import NamedTuple
 
 
-class Token(NamedTuple):  # not sure what this does tbh
+class Token(NamedTuple):
     def __init(self, type, value):
         self.type = type
         self.value = value
@@ -12,6 +12,7 @@ class Token(NamedTuple):  # not sure what this does tbh
     # line: int
     # column: int
 
+
 class Tokenizer:
     def __init__(self, text):
         self.code = text
@@ -19,7 +20,11 @@ class Tokenizer:
         # self.current_char = self.text[self.pos]
 
     def get_next_token(self):
+        """Lexical analyzer (also known as scanner or tokenizer)
 
+        This method is responsible for breaking a sentence
+        apart into tokens. One token at a time.
+        """
         token_specification = [
             ('REGISTER', 'R\d+(?!\w)'),
             ('NUMERIC_LITERAL', '\d+'),  # Integer or decimal number
@@ -31,7 +36,10 @@ class Tokenizer:
             ('RB', '\]'),  #
             ('COMMA', ','),
             ('INT_CAST', '\.\d'),  # change the name to something better, matches .1, .2 ...
-            ('ARITHM_OP', '[\-\+\*\/]'),
+            ('PLUS', '\+'),
+            ('MINUS', '\-'),
+            ('MUL', '\*'),
+            ('DIV', '\/'),
             ('BRANCH_OP', 'B(LT|LE|GT|GE|EQ|NE)'),  # matches branch operators: BLT, BLE, BGT, BGE, BEQ, BNE
             ('JUMP_OP', '^JMP\b'),  # not sure if this is correct
             ('CALL_OP', '^CALL\b'),
@@ -43,6 +51,7 @@ class Tokenizer:
             ('IDENTIFIER', '[a-zA-Z]+'),
             ('OTHER', '.')  # everything else
         ]
+
         if self.pos > len(self.code) - 1:
             self.pos += 1
             return Token('EOF', None)
@@ -66,7 +75,7 @@ class Tokenizer:
 # '''
 
 
-test = "M[R1 + 4] =.1 R2"
+test = "R3 = R2 + R31"
 
 if __name__ == '__main__':
     tokenizer = Tokenizer(test)
@@ -75,4 +84,4 @@ if __name__ == '__main__':
         if token.type == "EOF":
             break
         else:
-            print("shemovida",  token.type, token.value)
+            print("Token Type:", token.type, "| Token Value:", token.value)
