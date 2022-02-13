@@ -1,58 +1,6 @@
 from typing import NamedTuple
 import re
 
-
-
-# def tokenize(code):
-#     keywords = {'IF', 'THEN', 'ENDIF', 'FOR', 'NEXT', 'GOSUB', 'RETURN'}
-#     token_specification = [
-#         ('NUMBER',   r'\d+(\.\d*)?'),  # Integer or decimal number
-#         ('ASSIGN',   r':='),           # Assignment operator
-#         ('END',      r';'),            # Statement terminator
-#         ('ID',       r'[A-Za-z]+'),    # Identifiers
-#         ('OP',       r'[+\-*/]'),      # Arithmetic operators
-#         ('NEWLINE',  r'\n'),           # Line endings
-#         ('SKIP',     r'[ \t]+'),       # Skip over spaces and tabs
-#         ('MISMATCH', r'.'),            # Any other character
-#     ]
-#     tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
-#     print("regex: ", tok_regex)
-#     line_num = 1
-#     line_start = 0
-#     for matched_object in re.finditer(tok_regex, code):
-#         print("mo: ", matched_object)
-#         kind = matched_object.lastgroup
-#         print("kind: ", kind)
-#         value = matched_object.group()
-#         print("value: ", value)
-#         column = matched_object.start() - line_start
-#         if kind == 'NUMBER':
-#             value = float(value) if '.' in value else int(value)
-#         elif kind == 'ID' and value in keywords:
-#             kind = value
-#         elif kind == 'NEWLINE':
-#             line_start = matched_object.end()
-#             line_num += 1
-#             continue
-#         elif kind == 'SKIP':
-#             continue
-#         elif kind == 'MISMATCH':
-#             raise RuntimeError(f'{value!r} unexpected on line {line_num}')
-#         yield Token(kind, value, line_num, column)
-#
-# statements = ''' 15
-#     IF quantity THEN
-#         total := total + price * quantity;
-#         tax := price * 0.05;
-#     ENDIF;
-# '''
-
-# if __name__ == '__main__':
-#     for token in tokenize(statements):
-#         print(token)
-
-
-
 class Token(NamedTuple):
     def __init(self, type, value):
         self.type = type
@@ -151,19 +99,35 @@ class Tokenizer:
 '''
 
 class Parser:
-
     def __init__(self, lexer):
         self.lexer = lexer
-        self.current_token = l
+        self.lookahead = lexer.get_next_token()
 
-    lexer: Tokenizer
+    lexer: Tokenizer # does this work? idk, wgtf is this language??
 
     def eat(self, token_type):
+        if token_type == self.lookahead:
+            self.lookahead = self.lexer.get_next_token()
+        else:
+            raise RuntimeError("Something's sus")
 
 
-        pass
+    def Program(self):
+        self.statement()
 
+    #  < statement >: := < load_statement > | < call_statement > | < store_statement > | < jump_statement >
 
+    def statement(self):
+
+        # R1 = M[R2]
+
+        # <load_statement>
+
+        cur_token = self.lookahead
+        if cur_token.type == "LOAD_OP":
+        elif cur_token.type == "CALL_OP":
+        elif cur_token.type == "JUMP_OP":
+        elif cur_token.type == "JUMP_OP":
 
 
 
