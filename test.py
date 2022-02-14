@@ -2,7 +2,7 @@ from typing import NamedTuple
 import re
 
 class Token(NamedTuple):
-    def __init(self, type, value):
+    def __init__(self, type, value):
         self.type = type
         self.value = value
 
@@ -68,9 +68,11 @@ class Tokenizer:
 <program> ::= <statement>*
 
 ----------- Statement types -----------
-<statement> ::= <load_statement> | <call_statement> | <store_statement> | <jump_statement>
+<statement> ::= <load_statement> | <call_statement> | <store_statement> | <jump_statement> | <allocate_statement>
 
-<load_statement> ::= <all_reg> EQ_OP (<alu_expr> | <mem_expr>)
+<load_statement> ::= (REGISTER | RV_REG) EQ_OP (<alu_expr> | <mem_expr>)
+
+<allocate_statement> ::= SP_REG EQ_OP (<alu_expr> | <mem_expr>)
 
 <call_statement> ::= CALL_OP (LT_OP IDENTIFIER RT_OP | REGISTER)
 
@@ -99,11 +101,9 @@ class Tokenizer:
 '''
 
 class Parser:
-    def __init__(self, lexer):
+    def __init__(self, lexer: Tokenizer):
         self.lexer = lexer
         self.lookahead = lexer.get_next_token()
-
-    lexer: Tokenizer # does this work? idk, wgtf is this language??
 
     def eat(self, token_type):
         if token_type == self.lookahead:
@@ -113,7 +113,8 @@ class Parser:
 
 
     def Program(self):
-        self.statement()
+        while self.lookahead.type != 'EOF':
+            self.statement()
 
     #  < statement >: := < load_statement > | < call_statement > | < store_statement > | < jump_statement >
 
@@ -123,15 +124,78 @@ class Parser:
 
         # <load_statement>
 
+        # < load_statement >: := < all_reg > EQ_OP( < alu_expr > | < mem_expr >)
+        #
+        # < call_statement >: := CALL_OP(LT_OP IDENTIFIER RT_OP | REGISTER)
+        #
+        # < store_statement >: := MEM LB < alu_expr > RB EQ_OP < numeric_val >
+        #
+
+
         cur_token = self.lookahead
-        if cur_token.type == "LOAD_OP":
-        elif cur_token.type == "CALL_OP":
-        elif cur_token.type == "JUMP_OP":
-        elif cur_token.type == "JUMP_OP":
+
+        if cur_token.type == 'CALL_OP':
+            self.call_statement()
+        elif cur_token.type == 'JUMP_OP':
+            self.jump_statement()
+        elif cur_token.type == 'MEM':
+            self.store_statement()
+        else:
+            self.load_statement()
+
+
+    def call_statement(self):
+        self.eat('CALL_OP')
+        if self.lookahead.type == 'LT_OP':
+            self.eat('LT_OP')
+            self.eat('IDENTIFIER')
+            self.eat('RT_OP')
+        else:
+            self.eat('REGISTER')
+
+    # < jump_statement >: := JUMP_OP < alu_expr >
+
+    def jump_statement(self):
+        self.eat('JUMP_OP')
+        self.alu_expr()
+
+
+    def store_statement(self):
+        pass
+
+    def load_statement(self):
+        pass
+
+
+    def alu_expr(self):
+        self.numeric_val()
 
 
 
-    pass
+    def numeric_val(self):
+        if self.lookahead.type in ('PLUS', 'MINUS'):
+            self.additive_operator()
+        if self.lookahead.type in ('REGISTER', 'PC_REG', 'SP_REG', 'RV_REG'):
+            self.all_reg()
+        else:
+            self.eat('NUMERIC_LITERAL')
+
+
+     #   < numeric_val >: := < additive_operator >?(< all_reg > | NUMERIC_LITERAL)
+
+    def additive_operator(self):
+        if self.lookahead.type == 'PLUS':
+            self.eat('PLUS')
+        else:
+            self.eat('MINUS')
+
+    # <all_reg> ::= REGISTER | PC_REG | SP_REG | RV_REG
+
+    def all_reg(self):
+        if self.lookahead.type == 'REGISTER':
+            self.eat('REGISTER')
+        self.eat(self.lookahead.type)
+
 
 
 
