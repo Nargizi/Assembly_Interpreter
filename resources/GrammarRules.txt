@@ -4,7 +4,9 @@
 ----------- Statement types -----------
 <statement> ::= <load_statement> | <call_statement> | <store_statement> | <jump_statement>
 
-<load_statement> ::= <all_reg> EQ_OP (<alu_expr> | <mem_expr>)
+<load_statement> ::= (REGISTER | RV_REG) EQ_OP (<alu_expr> | <mem_expr>)
+
+<allocate_statement> ::= SP_REG EQ_OP (<alu_expr> | <mem_expr>)
 
 <call_statement> ::= CALL_OP (LT_OP IDENTIFIER RT_OP | REGISTER)
 
