@@ -1,11 +1,8 @@
 from typing import NamedTuple
 import re
+from ast import *
 
 class Token(NamedTuple):
-    def __init__(self, type, value):
-        self.type = type
-        self.value = value
-
     type: str
     value: str
     # line: int
@@ -25,25 +22,28 @@ class Tokenizer:
         apart into tokens. One token at a time.
         """
         token_specification = [
-            ('REGISTER', 'R\d+(?!\w)'),
-            ('NUMERIC_LITERAL', '\d+'),  # Integer or decimal number
-            ('PC_REG', '^PC(?!\w)'),  #
-            ('SP_REG', '^SP(?!\w)'),  #
-            ('RV_REG', '^RV(?!\w)'),  #
-            ('MEM', 'M(?=\[)'),  #
-            ('LB', '\['),  #
-            ('RB', '\]'),  #
+            ('NEWLINE', '\n'),
+            ('IGNORED', r'\s+'),
+            ('REGISTER', r'R\d+(?!\w)'),
+            ('NUMERIC_LITERAL', r'\d+'),  # Integer or decimal number
+            ('PC_REG', r'^PC(?!\w)'),  #
+            ('SP_REG', r'^SP(?!\w)'),  #
+            ('RV_REG', r'^RV(?!\w)'),  #
+            ('MEM', r'M(?=\[)'),  #
+            ('LB', r'\['),  #
+            ('RB', r'\]'),  #
             ('COMMA', ','),
-            ('INT_CAST', '\.\d'), # change the name to something better, matches .1, .2 ...
-            ('ARITHM_OP', '[\-\+\*\/]'),
+            ('INT_CAST', r'\.\d'),  # change the name to something better, matches .1, .2 ...
+            ('PLUS', r'\+'),
+            ('MINUS', '-'),
+            ('MUL', r'\*'),
+            ('DIV', '/'),
             ('BRANCH_OP', 'B(LT|LE|GT|GE|EQ|NE)'),  # matches branch operators: BLT, BLE, BGT, BGE, BEQ, BNE
-            ('JUMP_OP', '^JMP\b'), # not sure if this is correct
-            ('CALL_OP', '^CALL\b'),
+            ('JUMP_OP', r'JMP\b'),  # not sure if this is correct
+            ('CALL_OP', r'CALL\b'),
             ('LT', '<'),
             ('GT', '>'),
             ('EQ', '='),
-            ('NEWLINE', '\n'),
-            ('IGNORED', '\s+'),
             ('IDENTIFIER', '[a-zA-Z]+'),
             ('OTHER', '.')  # everything else
         ]
@@ -91,6 +91,8 @@ class Tokenizer:
 
 <alu_expr> ::= <numeric_val> (<alu> <numeric_val>)?
 
+<mem_expr> ::= SP_REG <additive_operator> NUMERIC_LITERAL
+
 <additive_operator> ::= PLUS | MINUS
 
 <multiplicative_operator> ::= MUL | DIV
@@ -111,26 +113,24 @@ class Parser:
         else:
             raise RuntimeError("Something's sus")
 
-
     def Program(self):
+        statement_list = []
         while self.lookahead.type != 'EOF':
-            self.statement()
+            statement_list.append(self.statement())
+        return Program(statement_list)
 
     #  < statement >: := < load_statement > | < call_statement > | < store_statement > | < jump_statement >
 
     def statement(self):
 
-        # R1 = M[R2]
-
         # <load_statement>
-
         # < load_statement >: := < all_reg > EQ_OP( < alu_expr > | < mem_expr >)
         #
         # < call_statement >: := CALL_OP(LT_OP IDENTIFIER RT_OP | REGISTER)
         #
         # < store_statement >: := MEM LB < alu_expr > RB EQ_OP < numeric_val >
         #
-
+        # < allocate_statement >: := SP_REG EQ_OP( < alu_expr > | < mem_expr >)
 
         cur_token = self.lookahead
 
@@ -140,63 +140,146 @@ class Parser:
             self.jump_statement()
         elif cur_token.type == 'MEM':
             self.store_statement()
+        elif cur_token.type == 'SP_REG':
+            self.allocate_statement()
         else:
             self.load_statement()
 
 
+    # <call_statement> ::= CALL_OP (LT_OP IDENTIFIER RT_OP | REGISTER)
     def call_statement(self):
         self.eat('CALL_OP')
         if self.lookahead.type == 'LT_OP':
             self.eat('LT_OP')
+            token = self.lookahead
             self.eat('IDENTIFIER')
             self.eat('RT_OP')
         else:
+            token = self.lookahead
             self.eat('REGISTER')
 
-    # < jump_statement >: := JUMP_OP < alu_expr >
+        return Call(token)
 
+    # < jump_statement >: := JUMP_OP < alu_expr >
     def jump_statement(self):
         self.eat('JUMP_OP')
-        self.alu_expr()
+        dest = self.alu_expr() # dest is either a BinaryOP or UnaryOp, not sure if this is correct
+        return Jump(dest)
 
+    # < store_statement >: := MEM LB < alu_expr > RB EQ_OP < numeric_val >
 
     def store_statement(self):
-        pass
+        self.eat('MEM')
+        self.eat('LB')
+        address = self.alu_expr()
+        self.eat('RB')
+        self.eat('EQ_OP')
+        value = self.numeric_val()
+        node = Store(address, value) # here address is a BinaryOP, where value is
+        return node
+
+    # < allocate_statement >: := SP_REG EQ_OP( < alu_expr > | < mem_expr >)
+
+    def allocate_statement(self):
+        self.eat("SP_REG")
+        self.eat("EQ_OP")
+        if self.lookahead.type == "MEM":
+            value = self.mem_expr()
+            return Allocate(value)
+        else:
+            return self.alu_expr()
+
+    # <load_statement> ::= (REGISTER | RV_REG) EQ_OP (<alu_expr> | <mem_expr>)
 
     def load_statement(self):
-        pass
+        token = self.lookahead
+        if token.type == 'RV_REG':
+            self.eat('RV_REG')
+        else:
+            self.eat('REGISTER')
 
+
+    # <alu_expr> ::= <numeric_val> (<alu> <numeric_val>)?
 
     def alu_expr(self):
-        self.numeric_val()
+        node = self.numeric_val()
+        if self.lookahead.type in ('PLUS', 'MINUS', 'MUL', 'DIV'):
+            op = self.alu()
+            right = self.numeric_val()
+            return BinaryOP(node, op, right)
+        return node
+
+    # <mem_expr> ::= SP_REG <additive_operator> NUMERIC_LITERAL
+
+    def mem_expr(self):
+        self.eat('SP_REG')
+        self.additive_operator()
+        token = self.lookahead
+        self.eat('NUMERIC_LITERAL')
+        return token
 
 
+    # <alu> ::= <additive_operator> | <multiplicative_operator>
+
+    # <numeric_val> ::= < additive_operator >?(< all_reg > | NUMERIC_LITERAL)
 
     def numeric_val(self):
+        op = None
         if self.lookahead.type in ('PLUS', 'MINUS'):
+            op = self.lookahead
             self.additive_operator()
-        if self.lookahead.type in ('REGISTER', 'PC_REG', 'SP_REG', 'RV_REG'):
+
+        operand = self.lookahead
+
+        if operand.type in ('REGISTER', 'PC_REG', 'SP_REG', 'RV_REG'):
             self.all_reg()
         else:
             self.eat('NUMERIC_LITERAL')
 
+        return UnaryOP(op, operand)
 
-     #   < numeric_val >: := < additive_operator >?(< all_reg > | NUMERIC_LITERAL)
+
+
+    # <alu> ::= <additive_operator> | <multiplicative_operator>
+    def alu(self):
+        token = self.lookahead
+        self.eat(token.type)
+        return token.type
+
+        # if token.type in ('PLUS', 'MINUS'):
+        #     self.additive_operator()
+        # elif token.type in ('MUL', 'DIV'):
+        #     self.multiplicative_operator()
 
     def additive_operator(self):
-        if self.lookahead.type == 'PLUS':
-            self.eat('PLUS')
-        else:
-            self.eat('MINUS')
+        # not sure whether this code is needed, commenting for now.
+        # if self.lookahead.type == 'PLUS':
+        #     self.eat('PLUS')
+        # else:
+        #     self.eat('MINUS')
+
+        self.eat(self.lookahead.type)
+
+    def multiplicative_operator(self):
+        self.eat(self.lookahead.type)
 
     # <all_reg> ::= REGISTER | PC_REG | SP_REG | RV_REG
 
     def all_reg(self):
-        if self.lookahead.type == 'REGISTER':
+        token = self.lookahead
+
+        if token.type == 'REGISTER':
             self.eat('REGISTER')
-        self.eat(self.lookahead.type)
-
-
+            return Register(token)
+        if token.type == 'PC_REG':
+            self.eat('PC_REG')
+            return PCRegister(token)
+        if token.type == 'SP_REG':
+            self.eat('SP_REG')
+            return SPRegister(token)
+        if token.type == 'RV_REG':
+            self.eat('RV_REG')
+            return RVRegister(token)
 
 
 
@@ -210,11 +293,11 @@ test = "M[R1 + 4] =.1 R2"
 
 if __name__ == '__main__':
     tokenizer = Tokenizer(test)
-    while(True):
-        token = tokenizer.get_next_token()
-        if token.type == "EOF":
+    while True:
+        token_cur = tokenizer.get_next_token()
+        if token_cur.type == "EOF":
             break
         else:
-            print("shemovida",  token.type, token.value)
+            print("shemovida",  token_cur.type, token_cur.value)
 
 
