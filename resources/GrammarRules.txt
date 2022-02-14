@@ -23,6 +23,10 @@
 
 <alu_expr> ::= <numeric_val> (<alu> <numeric_val>)?
 
-<numeric_val> ::= (PLUS|MINUS)?(<all_reg> | NUMERIC_LITERAL)
+<additive_operator> ::= PLUS | MINUS
 
-<alu> ::= PLUS | MINUS | MUL | DIV
+<multiplicative_operator> ::= MUL | DIV
+
+<numeric_val> ::= <additive_operator>?(<all_reg> | NUMERIC_LITERAL)
+
+<alu> ::= <additive_operator> | <multiplicative_operator>
