@@ -1,0 +1,23 @@
+Token Types:
+
+NUMERIC_LITERAL - \d+
+REGISTER - R\d+
+PC_REG - PC
+SP_REG - SP
+RV_REG - RV
+MEM - M
+LB - [
+RB - ]
+PLUS - +
+MINUS - -
+MUL - *
+DIV - /
+COMMA - ,
+BRANCH_OP - B([LG][ET]|NE|EQ) //BLT | BLE | BGT | BGE | BEQ | BNE
+JUMP_OP - JUMP
+CALL_OP - CALL
+LT_OP - <
+GT_OP - >
+EQ_OP - =
+IDENTIFIER - [_A-Za-z]\w*
+IGNORED - /s+

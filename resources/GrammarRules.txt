@@ -1,0 +1,34 @@
+//starting non-terminal
+<program> ::= <statement>*
+
+----------- Statement types -----------
+<statement> ::= <load_statement> | <call_statement> | <store_statement> | <jump_statement>
+
+<load_statement> ::= (REGISTER | RV_REG) EQ_OP (<alu_expr> | <mem_expr>)
+
+<allocate_statement> ::= SP_REG EQ_OP (<alu_expr> | <mem_expr>)
+
+<call_statement> ::= CALL_OP (LT_OP IDENTIFIER RT_OP | REGISTER)
+
+<store_statement> ::= MEM LB <alu_expr> RB EQ_OP <numeric_val>
+
+<jump_statement> ::= JUMP_OP <alu_expr>
+
+// Examples:
+// BEQ R1, 0, 344
+// BLT R2, R3, PC + 8
+
+<BRANCH_STATEMENT> ::=  BRANCH_OP <numeric_val> COMMA <numeric_val> COMMA <alu_expr>
+---------------------------------------
+
+<all_reg> ::= REGISTER | PC_REG | SP_REG | RV_REG
+
+<alu_expr> ::= <numeric_val> (<alu> <numeric_val>)?
+
+<additive_operator> ::= PLUS | MINUS
+
+<multiplicative_operator> ::= MUL | DIV
+
+<numeric_val> ::= <additive_operator>?(<all_reg> | NUMERIC_LITERAL)
+
+<alu> ::= <additive_operator> | <multiplicative_operator>

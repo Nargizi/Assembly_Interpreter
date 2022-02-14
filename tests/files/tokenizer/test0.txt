@@ -1,0 +1,9 @@
+CALL <print>
++
+*
+/
+M[1]
+R34 - PC
+RV =.1 SP
+BGT R3, R5, R7
+JMP SP + 4
