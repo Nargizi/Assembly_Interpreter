@@ -72,7 +72,7 @@ class Allocate(AST):
 class UnaryOP(AST):
     """
     op - unary operator token
-    operand - operand token
+    operand - operand
     """
     def __init__(self, op, operand):
         self.op = op
@@ -114,7 +114,7 @@ class Assignment(AST):
         (R2 = R3 + 4) - (var = value)
         (R1 =.2 10) - (var =prc value)
     """
-    def __init__(self, var, value, prc):
+    def __init__(self, var, value, prc=None):
         self.var = var
         self.value = value
         self.prc = prc
