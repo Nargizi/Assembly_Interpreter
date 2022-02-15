@@ -35,7 +35,6 @@ class Memory(bytearray):
         if start >= len(self):
             raise Exception
         fragment = self[start: start + size]
-        print(fragment)
         return int.from_bytes(fragment, byteorder='little', signed=True)
 
 
@@ -44,7 +43,7 @@ class Interpreter(NodeVisitor):
         self.registers = {'SP': Memory(REGISTER_SIZE), 'PC': Memory(REGISTER_SIZE)}
         self.stack = Memory()
         self.function_def = [FunctionBuiltIn(print, 4)]
-        self.function_decl = {'print', 0}
+        self.function_decl = {'print': 0}
         self.parser = parser
 
     def __error(self, msg=''):
@@ -169,7 +168,7 @@ class Interpreter(NodeVisitor):
         left = self.visit(node.left)
         right = self.visit(node.right)
         dest = self.visit(node.dest) // LINE_SIZE
-        type_ = node.type.type
+        type_ = node.type.value
         if type_ == 'BEQ':
             cond = left == right
         elif type_ == 'BGT':

@@ -1,0 +1,8 @@
+R1 = 5
+R2 = -10
+BLT R2, R1, PC + 8
+R2 = 30
+R3 = R1 * R2
+SP = SP + 4
+M[0]= PC
+CALL <print>
