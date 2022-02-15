@@ -1,5 +1,5 @@
 from ast import *
-from tokenizer import Tokenizer
+from tokenizer import Tokenizer, Token
 
 
 class Parser:
@@ -68,7 +68,9 @@ class Parser:
         self.eat('EQ')
         prc = None
         if self.lookahead.type == 'BYTE_SIZE':
-            prc = self.lookahead
+            token = self.lookahead
+            token = Token(token.type, token.value[1:], token.line, token.column)
+            prc = Num(token)
             self.eat('BYTE_SIZE')
 
         value = self.numeric_val() # UnaryOP
@@ -109,7 +111,9 @@ class Parser:
         self.eat('EQ')
         prc = None
         if self.lookahead.type == 'BYTE_SIZE':
-            prc = self.lookahead
+            token = self.lookahead
+            token = Token(token.type, token.value[1:], token.line, token.column)
+            prc = Num(token)
             self.eat('BYTE_SIZE')
 
         if self.lookahead.type == 'LT':
@@ -173,7 +177,7 @@ class Parser:
     def alu(self):
         token = self.lookahead
         self.eat(token.type)
-        return token.type
+        return token
 
     # <all_reg> ::= REGISTER | PC_REG | SP_REG | RV_REG
     def all_reg(self):
