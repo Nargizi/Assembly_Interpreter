@@ -2,8 +2,8 @@
 <program> ::= <statement>*
 
 ----------- Statement types -----------
-<statement> ::= <load_statement> | <call_statement>
-              | <store_statement> | <jump_statement> | <allocate_statement> | <return_statement>
+<statement> ::= <load_statement> | <call_statement> | <store_statement>
+                | <jump_statement> | <allocate_statement> | <branch_statement> | <return_statement>
 
 <load_statement> ::= (REGISTER | RV_REG) EQ_OP (<expr> | <function>)
 
@@ -15,13 +15,14 @@
 
 <jump_statement> ::= JUMP_OP <alu_expr>
 
-<return_statement> ::= RET
+<branch_statement> ::=  BRANCH_OP <numeric_val> COMMA <numeric_val> COMMA <alu_expr>
+
+<return_statement> ::= RETURN
 
 // Examples:
 // BEQ R1, 0, 344
 // BLT R2, R3, PC + 8
 
-<branch_statement> ::=  BRANCH_OP <numeric_val> COMMA <numeric_val> COMMA <alu_expr>
 ---------------------------------------
 ----------- Expression types ----------
 
@@ -31,12 +32,10 @@
 
 <mem_expr> ::= MEM LB <alu_expr> RB
 
-
 ---------------------------------------
 ------------ Operator types -----------
 
 <alu> ::= PLUS | MINUS | MUL | DIV # Binary Operators
-
 
 ---------------------------------------
 ------------- Value types -------------  # name 10/10
