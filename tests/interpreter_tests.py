@@ -1,7 +1,8 @@
 import unittest
-from src.Interpreter import Interpreter, Memory
+from src.interpreter import Interpreter, Memory
 from src.ast import *
 from src.tokenizer import Token
+
 
 class MockParser:
     def __init__(self, ast_):
@@ -21,6 +22,9 @@ class MyTestCase(unittest.TestCase):
     def __binary_op(self, left, op, right):
         return BinaryOP(left, op, right)
 
+    def __unary_op(self, op, operand):
+        return UnaryOP(op, operand)
+
     def test_memory(self):
         mem = Memory()
         mem.change_size(10)
@@ -34,22 +38,37 @@ class MyTestCase(unittest.TestCase):
         mem.store_value(256, 0)
         self.assertEqual(bytes([0, 1, 0, 0]), mem)
         self.assertEqual(256, mem.get_value(0))
-        print(mem)
+
+    def test_memory_negative(self):
+        mem = Memory()
+        mem.change_size(20)
+        mem.store_value(-1, 1, 1)
+        self.assertEqual(mem.get_value(1, 1), -1)
+        mem.store_value(-250)
+        self.assertEqual(mem.get_value(0), -250)
 
     def test_store_in_memory(self):
-
         asts = Program([Allocate(self.__number(10)), Store(self.__number(2), self.__number(8))])
         interpreter = Interpreter(MockParser(asts))
         interpreter.interpret()
         answ = Memory(10)
         answ.store_value(8, 2)
+        self.assertEqual(interpreter.registers['SP'].get_value(), 10)
         self.assertEqual(answ, interpreter.stack)
 
     def test_store_in_register(self):
-        asts = Assignment(self.__register('R1'), self.__number(4))
+        asts = Program([Assignment(self.__register('R1'), self.__number(4)),
+                        Assignment(self.__register('R2'), self.__register('R1'))])
         interpreter = Interpreter(MockParser(asts))
         interpreter.interpret()
         self.assertEqual(4, interpreter.registers['R1'].get_value(0))
+        self.assertEqual(4, interpreter.registers['R2'].get_value(0))
+
+    def test_unary_operators(self):
+        asts = Assignment(self.__register('R1'), self.__unary_op(Token('MINUS', '-', 0, 0), self.__number(1)))
+        interpreter = Interpreter(MockParser(asts))
+        interpreter.interpret()
+        self.assertEqual(-1, interpreter.registers['R1'].get_value(0))
 
     def test_bin_op(self):
         asts = Program([Assignment(self.__register('R1'), self.__binary_op(self.__number(4), Token('PLUS', '+', 0, 0), self.__number(8)))])
@@ -64,6 +83,20 @@ class MyTestCase(unittest.TestCase):
         interpreter = Interpreter(MockParser(asts))
         interpreter.interpret()
         self.assertEqual(1600, interpreter.registers['R1'].get_value(0))
+
+    def test_jump(self):
+        asts = Program([Assignment(self.__register('R1'), self.__number(200)),
+                        Assignment(self.__register('R2'), self.__number(8)),
+                        Jump(self.__binary_op(PCRegister(Token('PC_REG', 'PC', 0, 0)), Token('PLUS', '+', 0, 0), self.__number(8))),
+                        Assignment(self.__register('R1'),
+                                   self.__binary_op(self.__register('R1'), Token('MUL', '*', 0, 0),
+                                                    self.__register('R2'))),
+                        Assignment(self.__register('R2'), self.__number(16))])
+        interpreter = Interpreter(MockParser(asts))
+        interpreter.interpret()
+        self.assertEqual(200, interpreter.registers['R1'].get_value(0))
+        self.assertEqual(16, interpreter.registers['R2'].get_value(0))
+
 
 if __name__ == '__main__':
     unittest.main()

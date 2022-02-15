@@ -63,6 +63,7 @@ class Function(AST):
     def __init__(self, token):
         self.token = token
 
+
 class Return(AST):
     def __init__(self, token):
         self.token = token

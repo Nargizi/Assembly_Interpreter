@@ -1,7 +1,8 @@
 from ast import *
+from tokenizer import Token
 
 REGISTER_SIZE = 4
-
+LINE_SIZE = 4
 
 class JumpError(Exception):
     def __init__(self, dest):
@@ -21,9 +22,9 @@ class Memory(bytearray):
         return (i.bit_length() + 7) // 8
 
     def store_value(self, value: int, start=0, size=4):
-        binary_rep = value.to_bytes(self.__byte_length(value), byteorder='little')
+        binary_rep = value.to_bytes(max(self.__byte_length(value), size), byteorder='little', signed=True)
         binary_rep = binary_rep[:size]
-        self[start: start + len(binary_rep)] = binary_rep
+        self[start: start + size] = binary_rep
 
     def get_bytes(self, start=0, size=4):
         if start >= len(self):
@@ -34,7 +35,8 @@ class Memory(bytearray):
         if start >= len(self):
             raise Exception
         fragment = self[start: start + size]
-        return int.from_bytes(fragment, byteorder='little')
+        print(fragment)
+        return int.from_bytes(fragment, byteorder='little', signed=True)
 
 
 class Interpreter(NodeVisitor):
@@ -84,13 +86,19 @@ class Interpreter(NodeVisitor):
         register_name = node.token.value
         return self.__get_value_from_register(register_name)
 
+    def visit_Function(self, node: Function):
+        pass
+
+    def visit_Return(self, node: Return):
+        pass
+
     def visit_Allocate(self, node: Allocate):
         size = self.visit(node.size)
         self.__store_value_in_registers('SP', size)
         self.stack.change_size(size)
 
     def visit_Store(self, node: Store):
-        address = self.visit(node.address)
+        address = self.visit(node.address.address)
         value = self.visit(node.value)
         if node.prc is None:
             prc = 4
@@ -141,13 +149,13 @@ class Interpreter(NodeVisitor):
         pass
 
     def visit_Jump(self, node: Jump):
-        dest = self.visit(node.dest) // 4  # convert byte value to line num
+        dest = self.visit(node.dest) // LINE_SIZE  # convert byte value to line num
         raise JumpError(dest)
 
     def visit_Branch(self, node: Branch):
         left = self.visit(node.left)
         right = self.visit(node.right)
-        dest = self.visit(node.dest) // 4
+        dest = self.visit(node.dest) // LINE_SIZE
         type_ = node.type.type
         if type_ == 'BEQ':
             cond = left == right
@@ -165,11 +173,13 @@ class Interpreter(NodeVisitor):
     def visit_Program(self, node: Program):
         i = 0
         while i != len(node.statements):
+            self.registers['PC'].store_value(i * LINE_SIZE)
             statement = node.statements[i]
             try:
                 self.visit(statement)
+                i += 1
             except JumpError as j:
-                i = j.dest - 1
+                i = j.dest
 
     def interpret(self):
         ast_ = self.parser.parse()
@@ -177,10 +187,11 @@ class Interpreter(NodeVisitor):
 
 
 if __name__ == '__main__':
-    ast = Assignment
-    arr = Memory(0)
-    arr.change_size(10)
-    arr.store_value(0, 8, 1)
-    arr.change_size(1)
-    print(arr)
-    print(arr.get_value(0))
+    pass
+    # ast = BinaryOP(Num(Token('NUMERIC_LITERAL', '2', 0, 0)), Token('PLUS', '+', 0, 0),
+    #                Num(Token('NUMERIC_LITERAL', '1', 0, 0)))
+    # ast = BinaryOP(ast, Token('MUL', '*', 0, 0), ast)
+    # translator = LispTranslator()
+    # print(translator.visit(ast))
+
+
