@@ -17,9 +17,9 @@ BYTE_SIZE - .\d
 BRANCH_OP - B([LG][ET]|NE|EQ) //BLT | BLE | BGT | BGE | BEQ | BNE
 JUMP_OP - JUMP
 CALL_OP - CALL
-LT_OP - <
-GT_OP - >
-EQ_OP - =
+LT - <
+GT - >
+EQ - =
 IDENTIFIER - [_A-Za-z]\w*
 IGNORED - /s+
 NEWLINE - \n

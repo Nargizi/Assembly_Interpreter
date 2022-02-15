@@ -5,13 +5,13 @@
 <statement> ::= <load_statement> | <call_statement> | <store_statement>
                 | <jump_statement> | <allocate_statement> | <branch_statement> | <return_statement>
 
-<load_statement> ::= (REGISTER | RV_REG) EQ_OP BYTE_SIZE? (<expr> | <function>)
+<load_statement> ::= (REGISTER | RV_REG) EQ BYTE_SIZE? (<expr> | <function>)
 
-<allocate_statement> ::= SP_REG EQ_OP <expr>
+<allocate_statement> ::= SP_REG EQ <expr>
 
 <call_statement> ::= CALL_OP (<function> | REGISTER)
 
-<store_statement> ::= <mem_expr> EQ_OP BYTE_SIZE? <numeric_val>
+<store_statement> ::= <mem_expr> EQ BYTE_SIZE? <numeric_val>
 
 <jump_statement> ::= JUMP_OP <alu_expr>
 
@@ -42,6 +42,6 @@
 
 <numeric_val> ::= (PLUS | MINUS)? (<all_reg> | NUMERIC_LITERAL)
 
-<function> ::= LT_OP IDENTIFIER RT_OP
+<function> ::= LT IDENTIFIER GT
 
 <all_reg> ::= REGISTER | PC_REG | SP_REG | RV_REG

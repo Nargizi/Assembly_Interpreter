@@ -73,13 +73,13 @@ class Tokenizer:
 <statement> ::= <load_statement> | <call_statement> | <store_statement> | 
                 <jump_statement> | <allocate_statement> | <branch_statement> | <return_statement> 
 
-<load_statement> ::= BYTE_SIZE? (REGISTER | RV_REG) EQ_OP (<expr> | <function>)
+<load_statement> ::= BYTE_SIZE? (REGISTER | RV_REG) EQ (<expr> | <function>)
 
-<allocate_statement> ::= SP_REG EQ_OP <expr>
+<allocate_statement> ::= SP_REG EQ <expr>
 
 <call_statement> ::= CALL_OP (<function> | REGISTER)
 
-<store_statement> ::= BYTE_SIZE? <mem_expr> EQ_OP <numeric_val>
+<store_statement> ::= BYTE_SIZE? <mem_expr> EQ <numeric_val>
 
 <jump_statement> ::= JUMP_OP <alu_expr>
 
@@ -112,7 +112,7 @@ class Tokenizer:
 
 <numeric_val> ::= (PLUS | MINUS)? (<all_reg> | NUMERIC_LITERAL)
 
-<function> ::= LT_OP IDENTIFIER RT_OP
+<function> ::= LT IDENTIFIER GT
 
 <all_reg> ::= REGISTER | PC_REG | SP_REG | RV_REG
 
@@ -155,15 +155,15 @@ class Parser:
             return self.load_statement()
 
 
-    # <call_statement> ::= CALL_OP (LT_OP IDENTIFIER RT_OP | REGISTER)
+    # <call_statement> ::= CALL_OP (LT IDENTIFIER GT | REGISTER)
 
     def call_statement(self):
         self.eat('CALL_OP')
-        if self.lookahead.type == 'LT_OP':
-            self.eat('LT_OP')
+        if self.lookahead.type == 'LT':
+            self.eat('LT')
             token = self.lookahead
             self.eat('IDENTIFIER')
-            self.eat('RT_OP')
+            self.eat('GT')
         else:
             token = self.lookahead
             self.eat('REGISTER')
@@ -178,10 +178,10 @@ class Parser:
         dest = self.alu_expr() # dest is either a BinaryOP or UnaryOp, not sure if this is correct
         return Jump(dest)
 
-    # <store_statement> ::= <mem_expr> EQ_OP BYTE_SIZE? <numeric_val>
+    # <store_statement> ::= <mem_expr> EQ BYTE_SIZE? <numeric_val>
     def store_statement(self):
         address = self.mem_expr()
-        self.eat('EQ_OP')
+        self.eat('EQ')
         prc = None
         if self.lookahead.type == 'BYTE_SIZE':
             prc = self.lookahead
@@ -191,10 +191,10 @@ class Parser:
         node = Store(address, value, prc) # here address is a BinaryOP, where value is
         return node
 
-    # <allocate_statement> ::= SP_REG EQ_OP <expr>
+    # <allocate_statement> ::= SP_REG EQ <expr>
     def allocate_statement(self):
         self.eat("SP_REG")
-        self.eat("EQ_OP")
+        self.eat("EQ")
         node = self.expr()
         return Allocate(node)
 
@@ -217,30 +217,30 @@ class Parser:
         return Return(token)
 
 
-    # <load_statement> ::= (REGISTER | RV_REG) EQ_OP BYTE_SIZE? (<expr> | <function>)
+    # <load_statement> ::= (REGISTER | RV_REG) EQ BYTE_SIZE? (<expr> | <function>)
     def load_statement(self):
         token = self.lookahead
         if token.type in ('REGISTER', 'RV_REG'):
             var = self.all_reg()
-        self.eat('EQ_OP')
+        self.eat('EQ')
         prc = None
         if self.lookahead.type == 'BYTE_SIZE':
             prc = self.lookahead
             self.eat('BYTE_SIZE')
 
-        if self.lookahead.type == 'LT_OP':
+        if self.lookahead.type == 'LT':
             value = self.function()
         else:
             value = self.expr()
         return Assignment(var, value, prc)
 
 
-    # <function> ::= LT_OP IDENTIFIER RT_OP
+    # <function> ::= LT IDENTIFIER GT
     def function(self):
-        self.eat('LT_OP')
+        self.eat('LT')
         token = self.lookahead
         self.eat('IDENTIFIER')
-        self.eat('RT_OP')
+        self.eat('GT')
         return Function(token)
 
 
