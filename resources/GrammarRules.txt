@@ -35,16 +35,13 @@
 ---------------------------------------
 ------------ Operator types -----------
 
-<alu> ::= <additive_operator> | <multiplicative_operator>  # Binary Operators
+<alu> ::= PLUS | MINUS | MUL | DIV # Binary Operators
 
-<additive_operator> ::= PLUS | MINUS
-
-<multiplicative_operator> ::= MUL | DIV
 
 ---------------------------------------
 ------------- Value types -------------  # name 10/10
 
-<numeric_val> ::= <additive_operator>?(<all_reg> | NUMERIC_LITERAL)
+<numeric_val> ::= (PLUS | MINUS)? (<all_reg> | NUMERIC_LITERAL)
 
 <function> ::= LT_OP IDENTIFIER RT_OP
 
