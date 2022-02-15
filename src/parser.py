@@ -47,7 +47,7 @@ class Parser:
     def call_statement(self):
         self.eat('CALL_OP')
         if self.lookahead.type == 'LT':
-            return self.function()
+            return Call(self.function())
         else:
             token = self.lookahead
             self.eat('REGISTER')
@@ -61,9 +61,12 @@ class Parser:
         dest = self.alu_expr() # dest is either a BinaryOP or UnaryOp, not sure if this is correct
         return Jump(dest)
 
-    # <store_statement> ::= <numeric_val> EQ BYTE_SIZE? <numeric_val>
+    # <store_statement> ::= MEM LB <numeric_val> RB EQ BYTE_SIZE? <numeric_val>
     def store_statement(self):
+        self.eat('MEM')
+        self.eat('LB')
         address = self.numeric_val()
+        self.eat('RB')
         self.eat('EQ')
         prc = None
         if self.lookahead.type == 'BYTE_SIZE':
