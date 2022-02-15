@@ -97,6 +97,9 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(200, interpreter.registers['R1'].get_value(0))
         self.assertEqual(16, interpreter.registers['R2'].get_value(0))
 
+    def test_call(self):
+        self
+
 
 if __name__ == '__main__':
     unittest.main()

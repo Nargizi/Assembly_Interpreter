@@ -1,8 +1,8 @@
 from ast import *
-from tokenizer import Token
 
 REGISTER_SIZE = 4
 LINE_SIZE = 4
+
 
 class JumpError(Exception):
     def __init__(self, dest):
@@ -43,8 +43,8 @@ class Interpreter(NodeVisitor):
     def __init__(self, parser):
         self.registers = {'SP': Memory(REGISTER_SIZE), 'PC': Memory(REGISTER_SIZE)}
         self.stack = Memory()
-        self.function_def = [print]
-
+        self.function_def = [FunctionBuiltIn(print, 4)]
+        self.function_decl = {'print', 0}
         self.parser = parser
 
     def __error(self, msg=''):
@@ -63,6 +63,12 @@ class Interpreter(NodeVisitor):
     def __store_value_in_registers(self, name, value, prc=4):
         register: Memory = self.registers.setdefault(name, Memory(REGISTER_SIZE))
         register.store_value(value, 0, prc)
+
+    def visit_FunctionBuiltIn(self, node: FunctionBuiltIn):
+        arg = self.stack.get_value(self.__get_value_from_register('SP') - node.args_length, node.args_length)
+        rv = node.func(arg)
+        if rv is not None:
+            self.__store_value_in_registers('RV', rv)
 
     def visit_Num(self, node: Num):
         try:
@@ -87,7 +93,10 @@ class Interpreter(NodeVisitor):
         return self.__get_value_from_register(register_name)
 
     def visit_Function(self, node: Function):
-        pass
+        try:
+            return self.function_decl[node.token.value]
+        except KeyError:
+            self.__error()
 
     def visit_Return(self, node: Return):
         pass
@@ -98,7 +107,7 @@ class Interpreter(NodeVisitor):
         self.stack.change_size(size)
 
     def visit_Store(self, node: Store):
-        address = self.visit(node.address.address)
+        address = self.visit(node.address)
         value = self.visit(node.value)
         if node.prc is None:
             prc = 4
@@ -146,7 +155,11 @@ class Interpreter(NodeVisitor):
         self.__error()
 
     def visit_Call(self, node: Call):
-        pass
+        address = self.visit(node.callee)
+        try:
+            self.visit(self.function_def[address])
+        except ValueError:
+            self.__error()
 
     def visit_Jump(self, node: Jump):
         dest = self.visit(node.dest) // LINE_SIZE  # convert byte value to line num

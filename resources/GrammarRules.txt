@@ -11,7 +11,7 @@
 
 <call_statement> ::= CALL_OP (<function> | REGISTER)
 
-<store_statement> ::= <mem_expr> EQ BYTE_SIZE? <numeric_val>
+<store_statement> ::= MEM LB <numeric_val> RB EQ BYTE_SIZE? <numeric_val>
 
 <jump_statement> ::= JUMP_OP <alu_expr>
 

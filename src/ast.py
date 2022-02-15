@@ -146,6 +146,16 @@ class Branch(AST):
         self.dest = dest
 
 
+class FunctionBuiltIn(AST):
+    """
+    func - function pointer
+    args_length - byte length of function arguments
+    """
+    def __init__(self, func, args_length):
+        self.func = func
+        self.args_length = args_length
+
+
 class NodeVisitor:
     def visit(self, node):
         method = f'visit_{type(node).__name__}'
