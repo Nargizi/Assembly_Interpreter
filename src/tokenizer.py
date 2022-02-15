@@ -60,6 +60,7 @@ class Tokenizer:
             ('LT', '<'),
             ('GT', '>'),
             ('EQ', '='),
+            ('RETURN', 'RET'),
             ('IDENTIFIER', '[a-zA-Z]+'),
             ('OTHER', '.')  # everything else
         ]

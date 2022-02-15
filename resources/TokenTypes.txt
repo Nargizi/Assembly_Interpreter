@@ -21,3 +21,5 @@ GT_OP - >
 EQ_OP - =
 IDENTIFIER - [_A-Za-z]\w*
 IGNORED - /s+
+NEWLINE - \n
+RETURN - RET

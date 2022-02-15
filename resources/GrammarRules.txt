@@ -2,33 +2,50 @@
 <program> ::= <statement>*
 
 ----------- Statement types -----------
-<statement> ::= <load_statement> | <call_statement> | <store_statement> | <jump_statement>
+<statement> ::= <load_statement> | <call_statement>
+              | <store_statement> | <jump_statement> | <allocate_statement> | <return_statement>
 
-<load_statement> ::= (REGISTER | RV_REG) EQ_OP (<alu_expr> | <mem_expr>)
+<load_statement> ::= (REGISTER | RV_REG) EQ_OP (<expr> | <function>)
 
-<allocate_statement> ::= SP_REG EQ_OP (<alu_expr> | <mem_expr>)
+<allocate_statement> ::= SP_REG EQ_OP <expr>
 
-<call_statement> ::= CALL_OP (LT_OP IDENTIFIER RT_OP | REGISTER)
+<call_statement> ::= CALL_OP (<function> | REGISTER)
 
-<store_statement> ::= MEM LB <alu_expr> RB EQ_OP <numeric_val>
+<store_statement> ::= <mem_expr> EQ_OP <numeric_val>
 
 <jump_statement> ::= JUMP_OP <alu_expr>
+
+<return_statement> ::= RET
 
 // Examples:
 // BEQ R1, 0, 344
 // BLT R2, R3, PC + 8
 
-<BRANCH_STATEMENT> ::=  BRANCH_OP <numeric_val> COMMA <numeric_val> COMMA <alu_expr>
+<branch_statement> ::=  BRANCH_OP <numeric_val> COMMA <numeric_val> COMMA <alu_expr>
 ---------------------------------------
+----------- Expression types ----------
 
-<all_reg> ::= REGISTER | PC_REG | SP_REG | RV_REG
+<expr> ::= <alu_expr> | <mem_expr>
 
 <alu_expr> ::= <numeric_val> (<alu> <numeric_val>)?
+
+<mem_expr> ::= MEM LB <alu_expr> RB
+
+
+---------------------------------------
+------------ Operator types -----------
+
+<alu> ::= <additive_operator> | <multiplicative_operator>  # Binary Operators
 
 <additive_operator> ::= PLUS | MINUS
 
 <multiplicative_operator> ::= MUL | DIV
 
+---------------------------------------
+------------- Value types -------------  # name 10/10
+
 <numeric_val> ::= <additive_operator>?(<all_reg> | NUMERIC_LITERAL)
 
-<alu> ::= <additive_operator> | <multiplicative_operator>
+<function> ::= LT_OP IDENTIFIER RT_OP
+
+<all_reg> ::= REGISTER | PC_REG | SP_REG | RV_REG
