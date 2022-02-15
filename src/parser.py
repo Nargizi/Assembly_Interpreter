@@ -11,7 +11,7 @@ class Parser:
         self.lookahead = lexer.get_next_token()
 
     def eat(self, token_type):
-        if token_type == self.lookahead:
+        if token_type == self.lookahead.type:
             self.lookahead = self.lexer.get_next_token()
         else:
             raise RuntimeError("Something's sus")
