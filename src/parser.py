@@ -3,6 +3,9 @@ from tokenizer import Tokenizer, Token
 
 
 class Parser:
+    def parse(self):
+        return self.program()
+
     def __init__(self, lexer: Tokenizer):
         self.lexer = lexer
         self.lookahead = lexer.get_next_token()
@@ -13,7 +16,7 @@ class Parser:
         else:
             raise RuntimeError("Something's sus")
 
-    def Program(self):
+    def program(self):
         statement_list = []
         while self.lookahead.type != 'EOF':
             statement_list.append(self.statement())
@@ -51,7 +54,6 @@ class Parser:
             node = Register(token)
             return Call(node)
 
-        return Call(token)
 
     # <jump_statement> ::= JUMP_OP <alu_expr>
     def jump_statement(self):
