@@ -33,7 +33,7 @@ class Tokenizer:
             ('LB', r'\['),  #
             ('RB', r'\]'),  #
             ('COMMA', ','),
-            ('INT_CAST', r'\.\d'),  # change the name to something better, matches .1, .2 ...
+            ('BYTE_SIZE', r'\.[1 2 3]'),  # change the name to something better, matches .1, .2 .3
             ('PLUS', r'\+'),
             ('MINUS', '-'),
             ('MUL', r'\*'),
@@ -44,6 +44,7 @@ class Tokenizer:
             ('LT', '<'),
             ('GT', '>'),
             ('EQ', '='),
+            ('RETURN', 'RET'),
             ('IDENTIFIER', '[a-zA-Z]+'),
             ('OTHER', '.')  # everything else
         ]
@@ -63,43 +64,58 @@ class Tokenizer:
             self.pos += match.end()
             return Token(token_type, match.group())
 
-''' Grammar Rules:
+'''
 
+//starting non-terminal
 <program> ::= <statement>*
 
 ----------- Statement types -----------
-<statement> ::= <load_statement> | <call_statement> | <store_statement> | <jump_statement> | <allocate_statement>
+<statement> ::= <load_statement> | <call_statement> | <store_statement> | 
+                <jump_statement> | <allocate_statement> | <branch_statement> | <return_statement> 
 
-<load_statement> ::= (REGISTER | RV_REG) EQ_OP (<alu_expr> | <mem_expr>)
+<load_statement> ::= BYTE_SIZE? (REGISTER | RV_REG) EQ_OP (<expr> | <function>)
 
-<allocate_statement> ::= SP_REG EQ_OP (<alu_expr> | <mem_expr>)
+<allocate_statement> ::= SP_REG EQ_OP <expr>
 
-<call_statement> ::= CALL_OP (LT_OP IDENTIFIER RT_OP | REGISTER)
+<call_statement> ::= CALL_OP (<function> | REGISTER)
 
-<store_statement> ::= MEM LB <alu_expr> RB EQ_OP <numeric_val>
+<store_statement> ::= BYTE_SIZE? <mem_expr> EQ_OP <numeric_val>
 
 <jump_statement> ::= JUMP_OP <alu_expr>
+
+<branch_statement> ::=  BRANCH_OP <numeric_val> COMMA <numeric_val> COMMA <alu_expr>
+
+<return_statement> ::= RETURN
 
 // Examples:
 // BEQ R1, 0, 344
 // BLT R2, R3, PC + 8
 
-<BRANCH_STATEMENT> ::=  BRANCH_OP <numeric_val> COMMA <numeric_val> COMMA <alu_expr>
 ---------------------------------------
+----------- Expression types ----------
 
-<all_reg> ::= REGISTER | PC_REG | SP_REG | RV_REG
+<expr> ::= <alu_expr> | <mem_expr>
 
 <alu_expr> ::= <numeric_val> (<alu> <numeric_val>)?
 
-<mem_expr> ::= SP_REG <additive_operator> NUMERIC_LITERAL
+<mem_expr> ::= MEM LB <alu_expr> RB
 
-<additive_operator> ::= PLUS | MINUS
 
-<multiplicative_operator> ::= MUL | DIV
+---------------------------------------
+------------ Operator types -----------
 
-<numeric_val> ::= <additive_operator>?(<all_reg> | NUMERIC_LITERAL)
+<alu> ::= PLUS | MINUS | MUL | DIV # Binary Operators
 
-<alu> ::= <additive_operator> | <multiplicative_operator>
+
+---------------------------------------
+------------- Value types -------------  # name 10/10
+
+<numeric_val> ::= (PLUS | MINUS)? (<all_reg> | NUMERIC_LITERAL)
+
+<function> ::= LT_OP IDENTIFIER RT_OP
+
+<all_reg> ::= REGISTER | PC_REG | SP_REG | RV_REG
+
 '''
 
 class Parser:
@@ -119,34 +135,28 @@ class Parser:
             statement_list.append(self.statement())
         return Program(statement_list)
 
-    #  < statement >: := < load_statement > | < call_statement > | < store_statement > | < jump_statement >
-
     def statement(self):
 
-        # <load_statement>
-        # < load_statement >: := < all_reg > EQ_OP( < alu_expr > | < mem_expr >)
-        #
-        # < call_statement >: := CALL_OP(LT_OP IDENTIFIER RT_OP | REGISTER)
-        #
-        # < store_statement >: := MEM LB < alu_expr > RB EQ_OP < numeric_val >
-        #
-        # < allocate_statement >: := SP_REG EQ_OP( < alu_expr > | < mem_expr >)
+        token = self.lookahead
 
-        cur_token = self.lookahead
-
-        if cur_token.type == 'CALL_OP':
-            self.call_statement()
-        elif cur_token.type == 'JUMP_OP':
-            self.jump_statement()
-        elif cur_token.type == 'MEM':
-            self.store_statement()
-        elif cur_token.type == 'SP_REG':
-            self.allocate_statement()
+        if token.type == 'CALL_OP':
+            return self.call_statement()
+        elif token.type == 'JUMP_OP':
+            return self.jump_statement()
+        elif token.type == 'MEM':
+            return self.store_statement()
+        elif token.type == 'SP_REG':
+            return self.allocate_statement()
+        elif token.type == 'BRANCH_OP':
+            return self.branch_statement()
+        elif token.type == 'RETURN':
+            return self.return_statement()
         else:
-            self.load_statement()
+            return self.load_statement()
 
 
     # <call_statement> ::= CALL_OP (LT_OP IDENTIFIER RT_OP | REGISTER)
+
     def call_statement(self):
         self.eat('CALL_OP')
         if self.lookahead.type == 'LT_OP':
@@ -157,114 +167,131 @@ class Parser:
         else:
             token = self.lookahead
             self.eat('REGISTER')
+            node = Register(token)
+            return Call(node)
 
         return Call(token)
 
-    # < jump_statement >: := JUMP_OP < alu_expr >
+    # <jump_statement> ::= JUMP_OP <alu_expr>
     def jump_statement(self):
         self.eat('JUMP_OP')
         dest = self.alu_expr() # dest is either a BinaryOP or UnaryOp, not sure if this is correct
         return Jump(dest)
 
-    # < store_statement >: := MEM LB < alu_expr > RB EQ_OP < numeric_val >
-
+    # <store_statement> ::= <mem_expr> EQ_OP BYTE_SIZE? <numeric_val>
     def store_statement(self):
-        self.eat('MEM')
-        self.eat('LB')
-        address = self.alu_expr()
-        self.eat('RB')
+        address = self.mem_expr()
         self.eat('EQ_OP')
-        value = self.numeric_val()
-        node = Store(address, value) # here address is a BinaryOP, where value is
+        prc = None
+        if self.lookahead.type == 'BYTE_SIZE':
+            prc = self.lookahead
+            self.eat('BYTE_SIZE')
+
+        value = self.numeric_val() # UnaryOP
+        node = Store(address, value, prc) # here address is a BinaryOP, where value is
         return node
 
-    # < allocate_statement >: := SP_REG EQ_OP( < alu_expr > | < mem_expr >)
-
+    # <allocate_statement> ::= SP_REG EQ_OP <expr>
     def allocate_statement(self):
         self.eat("SP_REG")
         self.eat("EQ_OP")
-        if self.lookahead.type == "MEM":
-            value = self.mem_expr()
-            return Allocate(value)
-        else:
-            return self.alu_expr()
+        node = self.expr()
+        return Allocate(node)
 
-    # <load_statement> ::= (REGISTER | RV_REG) EQ_OP (<alu_expr> | <mem_expr>)
+    # <branch_statement> ::=  BRANCH_OP <numeric_val> COMMA <numeric_val> COMMA <alu_expr>
+    def branch_statement(self):
+        token = self.lookahead # branch token
+        self.eat('BRANCH_OP')
+        left = self.numeric_val()
+        self.eat('COMMA')
+        right = self.numeric_val()
+        self.eat('COMMA')
+        dest = self.alu_expr()
+        return Branch(token, left, right, dest)
 
+
+    # <return_statement> ::= RETURN
+    def return_statement(self):
+        token = self.lookahead
+        self.eat('RETURN')
+        return Return(token)
+
+
+    # <load_statement> ::= (REGISTER | RV_REG) EQ_OP BYTE_SIZE? (<expr> | <function>)
     def load_statement(self):
         token = self.lookahead
-        if token.type == 'RV_REG':
-            self.eat('RV_REG')
+        if token.type in ('REGISTER', 'RV_REG'):
+            var = self.all_reg()
+        self.eat('EQ_OP')
+        prc = None
+        if self.lookahead.type == 'BYTE_SIZE':
+            prc = self.lookahead
+            self.eat('BYTE_SIZE')
+
+        if self.lookahead.type == 'LT_OP':
+            value = self.function()
         else:
-            self.eat('REGISTER')
+            value = self.expr()
+        return Assignment(var, value, prc)
+
+
+    # <function> ::= LT_OP IDENTIFIER RT_OP
+    def function(self):
+        self.eat('LT_OP')
+        token = self.lookahead
+        self.eat('IDENTIFIER')
+        self.eat('RT_OP')
+        return Function(token)
 
 
     # <alu_expr> ::= <numeric_val> (<alu> <numeric_val>)?
-
     def alu_expr(self):
-        node = self.numeric_val()
+        node = self.numeric_val() #
         if self.lookahead.type in ('PLUS', 'MINUS', 'MUL', 'DIV'):
             op = self.alu()
             right = self.numeric_val()
             return BinaryOP(node, op, right)
         return node
 
-    # <mem_expr> ::= SP_REG <additive_operator> NUMERIC_LITERAL
-
+    # <mem_expr> ::= MEM LB <alu_expr> RB
     def mem_expr(self):
-        self.eat('SP_REG')
-        self.additive_operator()
-        token = self.lookahead
-        self.eat('NUMERIC_LITERAL')
-        return token
+        self.eat('MEM')
+        self.eat('LB')
+        node = self.alu_expr()
+        self.eat('RB')
+        return Load(node)
+
+    # <expr> ::= <alu_expr> | <mem_expr>
+    def expr(self):
+        if self.lookahead.type == "MEM":
+            return self.mem_expr()
+        else:
+            return self.alu_expr()
 
 
-    # <alu> ::= <additive_operator> | <multiplicative_operator>
-
-    # <numeric_val> ::= < additive_operator >?(< all_reg > | NUMERIC_LITERAL)
-
+    # <numeric_val> ::= (PLUS | MINUS)? (< all_reg > | NUMERIC_LITERAL)
     def numeric_val(self):
         op = None
         if self.lookahead.type in ('PLUS', 'MINUS'):
-            op = self.lookahead
-            self.additive_operator()
+            op = self.alu()
 
-        operand = self.lookahead
-
-        if operand.type in ('REGISTER', 'PC_REG', 'SP_REG', 'RV_REG'):
-            self.all_reg()
+        token = self.lookahead
+        if token.type in ('REGISTER', 'PC_REG', 'SP_REG', 'RV_REG'):
+            node = self.all_reg()
         else:
+            node = Num(self.lookahead)
             self.eat('NUMERIC_LITERAL')
 
-        return UnaryOP(op, operand)
+        return UnaryOP(op, node)
 
 
-
-    # <alu> ::= <additive_operator> | <multiplicative_operator>
+    # <alu> ::= PLUS | MINUS | MUL | DIV
     def alu(self):
         token = self.lookahead
         self.eat(token.type)
         return token.type
 
-        # if token.type in ('PLUS', 'MINUS'):
-        #     self.additive_operator()
-        # elif token.type in ('MUL', 'DIV'):
-        #     self.multiplicative_operator()
-
-    def additive_operator(self):
-        # not sure whether this code is needed, commenting for now.
-        # if self.lookahead.type == 'PLUS':
-        #     self.eat('PLUS')
-        # else:
-        #     self.eat('MINUS')
-
-        self.eat(self.lookahead.type)
-
-    def multiplicative_operator(self):
-        self.eat(self.lookahead.type)
-
     # <all_reg> ::= REGISTER | PC_REG | SP_REG | RV_REG
-
     def all_reg(self):
         token = self.lookahead
 

@@ -13,6 +13,7 @@ MINUS - -
 MUL - *
 DIV - /
 COMMA - ,
+BYTE_SIZE - .\d
 BRANCH_OP - B([LG][ET]|NE|EQ) //BLT | BLE | BGT | BGE | BEQ | BNE
 JUMP_OP - JUMP
 CALL_OP - CALL

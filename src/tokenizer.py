@@ -49,7 +49,7 @@ class Tokenizer:
             ('LB', r'\['),  #
             ('RB', r'\]'),  #
             ('COMMA', ','),
-            ('INT_CAST', r'\.\d'),  # change the name to something better, matches .1, .2 ...
+            ('BYTE_SIZE', r'\.\d'),  # change the name to something better, matches .1, .2 ...
             ('PLUS', r'\+'),
             ('MINUS', '-'),
             ('MUL', r'\*'),
