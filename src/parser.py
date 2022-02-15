@@ -39,15 +39,12 @@ class Parser:
             return self.load_statement()
 
 
-    # <call_statement> ::= CALL_OP (LT IDENTIFIER GT | REGISTER)
+    # <call_statement> ::= CALL_OP (<function> | REGISTER)
 
     def call_statement(self):
         self.eat('CALL_OP')
         if self.lookahead.type == 'LT':
-            self.eat('LT')
-            token = self.lookahead
-            self.eat('IDENTIFIER')
-            self.eat('GT')
+            return self.function()
         else:
             token = self.lookahead
             self.eat('REGISTER')
